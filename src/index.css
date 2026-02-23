@@ -1,0 +1,72 @@
+@import '@fontsource/open-sans';
+@import 'tailwindcss';
+
+@theme {
+  /* Colors */
+  --color-bg: #0a0a0f;
+  --color-surface: #12121a;
+  --color-border: #1e1e2e;
+  --color-accent: #f0e040;
+  --color-correct: #40d080;
+  --color-wrong: #e04060;
+  --color-pending: #3a3a55;
+  --color-text: #c8c8e0;
+  --color-muted: #555570;
+
+  /* Typography */
+  --font-family-sans: 'Open Sans', sans-serif;
+
+  /* Progress bar */
+  --spacing-progress: 3px;
+}
+
+/* Global base styles */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family-sans);
+  min-height: 100vh;
+}
+
+/* Ambient background gradients */
+body::before {
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      rgba(240, 224, 64, 0.075) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 80% 100%,
+      rgba(224, 64, 96, 0.075) 0%,
+      transparent 70%
+    );
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+}
+
+/* Blinking cursor on the current character */
+.char-current {
+  color: #fff;
+  position: relative;
+}
+
+.char-current::after {
+  animation: blink 0.8s step-end infinite;
+  background: var(--color-accent);
+  bottom: -2px;
+  content: '';
+  height: 2px;
+  left: 0;
+  position: absolute;
+  width: 100%;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
