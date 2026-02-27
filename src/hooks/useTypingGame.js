@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import ReactGA from 'react-ga4';
 import { MESSAGE } from '../constants';
 import { calcAccuracy, calcErrors, calcWpm } from '../utils/gameUtils';
 
@@ -115,6 +116,12 @@ export default function useTypingGame() {
           setAccuracy(calcAccuracy(newTyped, message));
           setErrors(calcErrors(newTyped, message));
           setFinished(true);
+
+          ReactGA.event({
+            category: 'game',
+            action: 'completed',
+            label: `${calcWpm(newTyped.length, finalElapsed)} wpm`,
+          });
         }
       }
     },
