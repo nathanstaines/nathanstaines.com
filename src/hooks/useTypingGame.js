@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import ReactGA from 'react-ga4';
 import { MESSAGE } from '../constants';
 import { calcAccuracy, calcErrors, calcWpm } from '../utils/gameUtils';
 
-export default function useTypingGame() {
+export default function useTypingGame(options = {}) {
+  const { timeProvider = () => Date.now(), onEvent } = options;
+
   const [message] = useState(MESSAGE);
   const [typed, setTyped] = useState('');
   const [started, setStarted] = useState(false);
@@ -19,18 +20,22 @@ export default function useTypingGame() {
       /Android|iPhone|iPad|iPod/i.test(navigator.userAgent),
   );
 
-  const areaRef = useRef(null);
+  const inputRef = useRef(null);
   const startTimeRef = useRef(null);
   const intervalRef = useRef(null);
+  const onEventRef = useRef(onEvent);
+  useEffect(() => {
+    onEventRef.current = onEvent;
+  }, [onEvent]);
 
-  const focusArea = useCallback(() => {
-    areaRef.current?.focus();
+  const focus = useCallback(() => {
+    inputRef.current?.focus();
   }, []);
 
   // Focus the typing area on mount (desktop only)
   useEffect(() => {
-    if (!isMobile) focusArea();
-  }, [isMobile, focusArea]);
+    if (!isMobile) focus();
+  }, [isMobile, focus]);
 
   const stopTimer = useCallback(() => {
     clearInterval(intervalRef.current);
@@ -56,8 +61,8 @@ export default function useTypingGame() {
     setWpm(null);
     setAccuracy(null);
     setErrors(0);
-    setTimeout(focusArea, 0);
-  }, [stopTimer, focusArea]);
+    setTimeout(focus, 0);
+  }, [stopTimer, focus]);
 
   // Tab to restart
   useEffect(() => {
@@ -91,9 +96,9 @@ export default function useTypingGame() {
 
         if (!started) {
           setStarted(true);
-          startTimeRef.current = Date.now();
+          startTimeRef.current = timeProvider();
           intervalRef.current = setInterval(() => {
-            const secs = (Date.now() - startTimeRef.current) / 1000;
+            const secs = (timeProvider() - startTimeRef.current) / 1000;
             setElapsed(secs);
             setTyped((t) => {
               updateStats(t, secs);
@@ -103,29 +108,36 @@ export default function useTypingGame() {
         }
 
         const secs = startTimeRef.current
-          ? (Date.now() - startTimeRef.current) / 1000
+          ? (timeProvider() - startTimeRef.current) / 1000
           : 0;
         setTyped(newTyped);
         updateStats(newTyped, secs);
 
         if (newTyped.length === message.length) {
           stopTimer();
-          const finalElapsed = (Date.now() - startTimeRef.current) / 1000;
+          const finalElapsed = (timeProvider() - startTimeRef.current) / 1000;
+          const finalWpm = calcWpm(newTyped.length, finalElapsed);
+          const finalAccuracy = calcAccuracy(newTyped, message);
+          const finalErrors = calcErrors(newTyped, message);
           setElapsed(finalElapsed);
-          setWpm(calcWpm(newTyped.length, finalElapsed));
-          setAccuracy(calcAccuracy(newTyped, message));
-          setErrors(calcErrors(newTyped, message));
+          setWpm(finalWpm);
+          setAccuracy(finalAccuracy);
+          setErrors(finalErrors);
           setFinished(true);
 
-          ReactGA.event({
-            category: 'game',
-            action: 'completed',
-            label: `${calcWpm(newTyped.length, finalElapsed)} wpm`,
+          onEventRef.current?.({
+            type: 'completed',
+            payload: {
+              wpm: finalWpm,
+              accuracy: finalAccuracy,
+              errors: finalErrors,
+              elapsed: finalElapsed,
+            },
           });
         }
       }
     },
-    [typed, message, started, finished, updateStats, stopTimer],
+    [typed, message, started, finished, timeProvider, updateStats, stopTimer],
   );
 
   useEffect(() => () => stopTimer(), [stopTimer]);
@@ -133,19 +145,24 @@ export default function useTypingGame() {
   const progress =
     message.length > 0 ? (typed.length / message.length) * 100 : 0;
 
-  return {
-    message,
+  const state = {
     typed,
-    started,
-    finished,
+    message,
     elapsed,
     wpm,
     accuracy,
     errors,
-    isMobile,
     progress,
-    areaRef,
-    focusArea,
+    started,
+    finished,
+  };
+
+  return {
+    state,
+    isMobile,
     handleKeyDown,
+    reset,
+    inputRef,
+    focus,
   };
 }
