@@ -5,6 +5,9 @@ import { defineConfig } from 'vite';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  legacy: {
+    inconsistentCjsInterop: true,
+  },
   test: {
     environment: 'jsdom',
     globals: true,
