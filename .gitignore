@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# AI things (local only)
+.claude/worktrees/
+/docs/
